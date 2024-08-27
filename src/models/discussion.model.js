@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const discussionSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: [true, "Please! Title is required."],
     trim: true,
   },
   hashtags: {
@@ -12,7 +12,7 @@ const discussionSchema = new mongoose.Schema({
       validator: function (hashtags) {
         return hashtags.length <= 8;
       },
-      message: "A discussion can have a maximum of 8 hashtags.",
+      message: "Discussion must not exceeds 8 hashtags.",
     },
   },
   isAnswered: {

@@ -18,7 +18,7 @@ exports.successResponseWithData = function (res, msg, data) {
 };
 
 exports.errorResponse = function (res, errorKey) {
-  const error = APPLICATION_ERRORS[errorKey];
+  let error = APPLICATION_ERRORS[errorKey];
   if (!error) {
     error = APPLICATION_ERRORS.INTERNAL_SERVER_ERROR;
   }

@@ -3,18 +3,20 @@ const mongoose = require("mongoose");
 const alertSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: [true, "Please! Title is required."],
     trim: true,
   },
   tag: {
     type: String,
-    enum: ["urgent", "warning", "informative"],
-    required: true,
+    enum: ["urgent", "informative"],
+    required: [
+      true,
+      "Please provide the type of alert: 'urgent' or 'informative'.",
+    ],
   },
   text: {
     type: String,
-    required: true,
-    trim: true,
+    required: [true, "Please! Text is required."],
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

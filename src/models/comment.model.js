@@ -8,7 +8,7 @@ const commentSchema = new mongoose.Schema({
   },
   text: {
     type: String,
-    required: true,
+    required: [true, "Please! Comment cannot be empty."],
   },
   createdAt: {
     type: Date,

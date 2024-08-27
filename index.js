@@ -1,7 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const DatabaseConnection = require("./src/database/db.connection");
-const indexRouter = require("./src/routes/index");
+const appRouter = require("./src/routes/app");
 const apiRouter = require("./src/routes/api");
 
 const app = express();
@@ -12,7 +12,7 @@ dotenv.config();
 // Route prefixes
 
 app.use(express.json());
-app.use("/", indexRouter);
+app.use("/", appRouter);
 app.use("/api/", apiRouter);
 
 // Database connection

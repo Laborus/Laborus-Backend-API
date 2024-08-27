@@ -4,11 +4,16 @@ const jobSchema = require("./jobs.model");
 const companySchema = new mongoose.Schema({
   cnpj: {
     type: String,
-    required: true,
-    unique: true,
+    required: [true, "Please! CNPJ is required."],
+    unique: [true, "CNPJ is already in use."],
     trim: true,
   },
-  jobs: [jobSchema],
+  jobs: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job",
+    },
+  ],
   contactLinks: {
     website: {
       type: String,

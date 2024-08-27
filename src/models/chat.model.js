@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const chatSchema = new mongoose.Schema({
   message: {
     type: String,
-    required: true,
+    required: [true, "Please! Message cannot be empty."],
   },
   image: {
     data: Buffer,

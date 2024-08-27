@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validTags = require("./tags.enum");
 
 const jobSchema = new mongoose.Schema({
   companyImage: {
@@ -37,7 +38,7 @@ const jobSchema = new mongoose.Schema({
       validator: function (tags) {
         return tags.length <= 3;
       },
-      message: "A maximum of 3 tags is allowed.",
+      message: "Tags must not exceeds 3 items.",
     },
   },
   description: {

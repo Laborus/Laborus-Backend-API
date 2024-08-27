@@ -4,11 +4,17 @@ const Comment = require("./comment.model");
 const postSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
   },
   textContent: {
     type: String,
-    required: true,
+  },
+  postedOn: {
+    type: String,
+    enum: ["Global", "Campus"],
+    required: [
+      true,
+      "Please provide the route where you want to publish this post: Global or Campus.",
+    ],
   },
   image: {
     data: Buffer,
@@ -27,11 +33,16 @@ const postSchema = new mongoose.Schema({
     default: Date.now,
   },
   updatedAt: {
+    type: Date,
     type: Date.now,
   },
   likes: {
     type: Number,
     default: 0,
+  },
+  commentsEnabled: {
+    type: Boolean,
+    default: true,
   },
   comments: [commentSchema],
   shares: {

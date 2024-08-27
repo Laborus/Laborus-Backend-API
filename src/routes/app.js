@@ -1,9 +1,9 @@
 const router = require("express").Router();
 
-// API check
+// index API
 
 router.get("/", (req, res) => {
-  res.json({ status: "OK" });
+  res.json({ status: "ONLINE" });
 });
 
 module.exports = router;
