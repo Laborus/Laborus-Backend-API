@@ -1,15 +1,24 @@
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const dotenv = require("dotenv"); // Importa dotenv
+
+dotenv.config(); // Carrega as variáveis de ambiente
+
+// Verifique se as variáveis estão definidas
+console.log('MAIL_USER:', process.env.MAIL_USER);
+console.log('PASS_USER:', process.env.PASS_USER ? '********' : 'Nenhuma senha definida');
 
 // Configuração do transporte de e-mail
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
-  secure: false, // Use false para TLS
+  secure: false, // Use false para TLS (porta 587)
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.PASS_USER,
   },
+  logger: true, // Habilita logs detalhados (use apenas em desenvolvimento)
+  debug: true,   // Habilita logs de debug (use apenas em desenvolvimento)
 });
 
 // Gerar um código OTP aleatório
@@ -28,7 +37,8 @@ const sendOtpEmail = async (email, otp) => {
   };
 
   try {
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email enviado:", info.response); // Log do sucesso
   } catch (error) {
     console.error("Error sending email:", error);
     throw new Error("Error sending email");
