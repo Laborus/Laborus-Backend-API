@@ -5,21 +5,21 @@ const challengeSchema = new mongoose.Schema({
     type: String,
     required: true,
     min: [3, "Title must be at least 3 characters."],
-    max: [50, "Title must not exceeds 50 characters."],
+    max: [30, "Title must not exceeds 30 characters."],
   },
   instructions: {
     type: String,
     required: true,
     min: [3, "Instructions cannot be empty! Must be at least 3 characters."],
-    max: [600, "Instructions must not exceeds 600 characters."],
+    max: [250, "Instructions must not exceeds 250 characters."],
   },
   course: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Course",
+    type: String,
     required: [true, "Please! Course is required."],
   },
   points: {
     type: Number,
+    enum: [0, 20, 40, 60, 80, 100],
     required: [true, "Please! 'Points' is required."],
   },
   difficulty: {
@@ -34,9 +34,9 @@ const challengeSchema = new mongoose.Schema({
     data: Buffer,
     contentType: String,
   },
-  createdBy: {
+  school: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "School", // Referência ao modelo School
     required: true,
   },
   createdAt: {

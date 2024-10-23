@@ -1,20 +1,38 @@
-const User = require("../models/user.model");
 const APPLICATION_ERRORS = require("../models/application.errors.enum");
 const {
   successResponseWithData,
   errorResponse,
   successResponse,
 } = require("../utils/api.response");
+const Student = require("../models/student.model");
+const School = require("../models/school.model");
+const Company = require("../models/company.model");
 
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const userId = req.params.id; // Obtém o ID do usuário da requisição
+    let user;
 
-    if (!user) {
-      return errorResponse(res, "NOT_FOUND");
+    // Tenta encontrar o usuário como Student
+    user = await Student.findById(userId);
+    if (user) {
+      return successResponseWithData(res, "User retrieved successfully.", user);
     }
 
-    successResponseWithData(res, "User retrieved successfully.", user);
+    // Se não encontrar, tenta como School
+    user = await School.findById(userId);
+    if (user) {
+      return successResponseWithData(res, "User retrieved successfully.", user);
+    }
+
+    // Se ainda não encontrar, tenta como Company
+    user = await Company.findById(userId);
+    if (user) {
+      return successResponseWithData(res, "User retrieved successfully.", user);
+    }
+
+    // Se não encontrar em nenhum dos três, retorna NOT_FOUND
+    return errorResponse(res, "NOT_FOUND");
   } catch (error) {
     console.error(error);
     errorResponse(res, "INTERNAL_SERVER_ERROR");
@@ -22,49 +40,43 @@ exports.getUserById = async (req, res) => {
 };
 
 // Get all users
-
 exports.getAllUsers = async (req, res) => {
   try {
-    const { tags, accountType } = req.query;
-    let filter = {};
+    // Buscar todos os usuários de cada tipo
+    const students = await Student.find();
+    const schools = await School.find();
+    const companies = await Company.find();
 
-    if (tags) {
-      const tagsArray = tags.split(","); // Converte a string de tags em um array
-      const validTags = tagsArray.filter((tag) =>
-        Object.values(Tags).includes(tag.toUpperCase())
-      );
+    // Calcular total de cada tipo de usuário
+    const totalStudents = students.length;
+    const totalSchools = schools.length;
+    const totalCompanies = companies.length;
+    const totalUsers = totalStudents + totalSchools + totalCompanies;
 
-      if (validTags.length > 0) {
-        filter.tags = { $in: validTags };
-      }
-    }
+    // Contar usuários online
+    const onlineStudentsCount = await Student.countDocuments({
+      isOnline: true,
+    });
+    const onlineSchoolsCount = await School.countDocuments({ isOnline: true });
+    const onlineCompaniesCount = await Company.countDocuments({
+      isOnline: true,
+    });
 
-    if (accountType) {
-      const validAccountTypes = ["Student", "School", "Company"];
-      if (validAccountTypes.includes(accountType)) {
-        filter.accountType = accountType;
-      } else {
-        return errorResponse(
-          res,
-          "INVALID_ACCOUNT_TYPE",
-          "The provided account type is invalid."
-        );
-      }
-    }
+    const totalOnlineUsers =
+      onlineStudentsCount + onlineSchoolsCount + onlineCompaniesCount;
 
-    const totalCount = await User.countDocuments(filter);
-
-    const schoolUsers = await User.countDocuments({ accountType: "School" });
-    const studentUsers = await User.countDocuments({ accountType: "Student" });
-    const companyUsers = await User.countDocuments({ accountType: "Company" });
-
-    const users = await User.find(filter);
+    // Agrupar os usuários
+    const users = { students, schools, companies };
 
     successResponseWithData(res, "Users retrieved successfully.", {
-      totalUsers: totalCount,
-      schoolUsers: schoolUsers,
-      studentUsers: studentUsers,
-      companyUsers: companyUsers,
+      totalUsers,
+      totalStudents,
+      totalSchools,
+      totalCompanies,
+      totalOnlineUsers, // Adicionando a contagem de usuários online
+      onlineStudentsCount,
+      onlineSchoolsCount,
+      onlineCompaniesCount,
       users,
     });
   } catch (error) {
@@ -73,49 +85,94 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// exports.updateUser = async (req, res) => {};
-
-// exports.userPhoto = async (req, res) => {};
-
-exports.deleteUser = async (req, res) => {
+// Get all students
+exports.getAllStudents = async (req, res) => {
   try {
-    const userId = req.params.id;
+    const students = await Student.find();
+    const totalStudents = students.length;
 
-    const result = await User.findByIdAndDelete(userId);
-
-    if (!result) {
-      return errorResponse(res, "NOT_FOUND");
-    }
-
-    successResponse(res, "User deleted successfully.");
+    successResponseWithData(res, "Students retrieved successfully.", {
+      totalStudents,
+      students,
+    });
   } catch (error) {
     console.error(error);
     errorResponse(res, "INTERNAL_SERVER_ERROR");
   }
 };
-// Temporarily
+
+// Get all schools
+exports.getAllSchools = async (req, res) => {
+  try {
+    const schools = await School.find();
+    const totalSchools = schools.length;
+
+    successResponseWithData(res, "Schools retrieved successfully.", {
+      totalSchools,
+      schools,
+    });
+  } catch (error) {
+    console.error(error);
+    errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+// Get all companies
+exports.getAllCompanies = async (req, res) => {
+  try {
+    const companies = await Company.find();
+    const totalCompanies = companies.length;
+
+    successResponseWithData(res, "Companies retrieved successfully.", {
+      totalCompanies,
+      companies,
+    });
+  } catch (error) {
+    console.error(error);
+    errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id; // Obtém o ID do usuário da requisição
+
+    // Tenta encontrar e deletar o usuário como Student
+    let result = await Student.findByIdAndDelete(userId);
+    if (result) {
+      return successResponse(res, "User deleted successfully.");
+    }
+
+    // Se não encontrar, tenta como School
+    result = await School.findByIdAndDelete(userId);
+    if (result) {
+      return successResponse(res, "User deleted successfully.");
+    }
+
+    // Se ainda não encontrar, tenta como Company
+    result = await Company.findByIdAndDelete(userId);
+    if (result) {
+      return successResponse(res, "User deleted successfully.");
+    }
+
+    // Se não encontrar em nenhum dos três, retorna NOT_FOUND
+    return errorResponse(res, "NOT_FOUND");
+  } catch (error) {
+    console.error(error);
+    errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
 exports.deleteAllUsers = async (req, res) => {
   try {
-    await User.deleteMany({});
+    // Deleta todos os usuários de todos os tipos
+    await Student.deleteMany({});
+    await School.deleteMany({});
+    await Company.deleteMany({});
+
     successResponse(res, "All users deleted successfully.");
   } catch (error) {
     console.error(error);
     errorResponse(res, "INTERNAL_SERVER_ERROR");
   }
 };
-
-// exports.addConnection = async (req, res) => {};
-
-// exports.removeConnection = async (req, res) => {};
-
-// exports.addFollowing = async (req, res) => {};
-
-// exports.removeFollowing = async (req, res) => {};
-
-// exports.addFollower = async (req, res) => {};
-
-// exports.removeFollower = async (req, res) => {};
-
-// exports.saves = async (req, res) => {};
-
-// exports.findUsers = async (req, res) => {};

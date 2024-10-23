@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 const axios = require("axios");
-const User = require("../models/user.model");
 const Student = require("../models/student.model");
 const School = require("../models/school.model");
 const Company = require("../models/company.model");
 const { validationErrorWithData } = require("../utils/api.response");
+const bcrypt = require("bcrypt");
 
 // Função para validar CPF
 function isValidCPF(cpf) {
@@ -191,4 +191,78 @@ const validateUser = (req, res, next) => {
   return validate(schema)(req, res, next);
 };
 
-module.exports = { validateUser };
+const encryptPassword = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password is required.",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    req.body.password = hashedPassword;
+
+    next();
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to hash password.",
+    });
+  }
+};
+
+async function checkDuplicateUser(req, res, next) {
+  try {
+    const { email, cpf, cnpj } = req.body;
+
+    // Verificar se o e-mail já está cadastrado em qualquer uma das coleções
+    let existingUser =
+      (await Student.findOne({ email })) ||
+      (await School.findOne({ email })) ||
+      (await Company.findOne({ email }));
+
+    if (existingUser) {
+      return validationErrorWithData(res, "Email is already registered.", {
+        email,
+      });
+    }
+
+    // Verificar duplicidade de CPF (se aplicável)
+    if (cpf) {
+      existingUser = await Student.findOne({ cpf });
+      if (existingUser) {
+        return validationErrorWithData(res, "CPF is already registered.", {
+          cpf,
+        });
+      }
+    }
+
+    // Verificar duplicidade de CNPJ (se aplicável)
+    if (cnpj) {
+      existingUser =
+        (await School.findOne({ cnpj })) || (await Company.findOne({ cnpj }));
+      if (existingUser) {
+        return validationErrorWithData(res, "CNPJ is already registered.", {
+          cnpj,
+        });
+      }
+    }
+
+    // Se não houver duplicidades, prossiga
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      status: "error",
+      message: "Error checking for duplicate user.",
+      error: error.message,
+    });
+  }
+}
+
+module.exports = { validateUser, encryptPassword, checkDuplicateUser };
