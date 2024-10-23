@@ -5,11 +5,16 @@ const dotenv = require("dotenv"); // Importa dotenv
 dotenv.config(); // Carrega as variáveis de ambiente
 
 // Verifique se as variáveis estão definidas
+<<<<<<< HEAD
 console.log("MAIL_USER:", process.env.MAIL_USER);
 console.log(
   "PASS_USER:",
   process.env.PASS_USER ? "" : "Nenhuma senha definida"
 );
+=======
+console.log('MAIL_USER:', process.env.MAIL_USER);
+console.log('PASS_USER:', process.env.PASS_USER ? '********' : 'Nenhuma senha definida');
+>>>>>>> 45061d57d9a5284863b67682b7e3734bdc7de869
 
 // Configuração do transporte de e-mail
 const transporter = nodemailer.createTransport({
@@ -21,7 +26,11 @@ const transporter = nodemailer.createTransport({
     pass: process.env.PASS_USER,
   },
   logger: true, // Habilita logs detalhados (use apenas em desenvolvimento)
+<<<<<<< HEAD
   debug: true, // Habilita logs de debug (use apenas em desenvolvimento)
+=======
+  debug: true,   // Habilita logs de debug (use apenas em desenvolvimento)
+>>>>>>> 45061d57d9a5284863b67682b7e3734bdc7de869
 });
 
 // Enviar o token de redefinição de senha por e-mail
