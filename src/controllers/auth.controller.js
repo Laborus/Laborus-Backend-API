@@ -1,20 +1,15 @@
-const User = require("../models/user.model");
+const mongoose = require("mongoose");
 const Student = require("../models/student.model");
 const School = require("../models/school.model");
 const Company = require("../models/company.model");
-const {
-  generateOtp,
-  sendOtpEmail,
-  storeOtp,
-  verifyOtp,
-} = require("../utils/mailer-otp");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const {
   successResponseWithData,
   errorResponse,
   validationErrorWithData,
 } = require("../utils/api.response");
 
-// Função para registrar um usuário
 exports.signup = async (req, res) => {
   try {
     const {
@@ -30,22 +25,30 @@ exports.signup = async (req, res) => {
       saved,
       savedItemType,
       following,
-      otp, // Este é o OTP enviado e deve ser verificado
+      cpf, // Para Student
+      cnpj, // Para School e Company
+      courses, // Para School
+      school, // Para Student
     } = req.body;
 
-    // Verificar o OTP enviado
-    if (!verifyOtp(email, otp)) {
-      return errorResponse(res, "INVALID_OTP");
+    // Verifica se o e-mail já está registrado em qualquer uma das coleções
+    const existingUser =
+      (await Student.findOne({ email })) ||
+      (await School.findOne({ email })) ||
+      (await Company.findOne({ email }));
+
+    if (existingUser) {
+      return validationErrorWithData(res, "Email já está em uso.", { email });
     }
 
-    // Se o OTP for válido, prosseguir com o registro do usuário
+    // Campos comuns a todos os tipos de usuário
     const commonFields = {
       name,
       email,
-      password,
+      password: await bcrypt.hash(password, 10), // Hash da senha
       accountType,
-      isEmailVerified: true, // O e-mail foi verificado
-      accountStatus: "active", // Conta ativa após verificação
+      isEmailVerified: false, // Considerar o valor padrão como false
+      accountStatus: "active",
       isOnline: false,
       location,
       tags,
@@ -59,118 +62,131 @@ exports.signup = async (req, res) => {
 
     let user;
 
-    // Criar o usuário baseado no tipo de conta
+    // Lógica de registro baseada no tipo de conta
     if (accountType === "Student") {
-      const { cpf, school, course } = req.body;
-      if (!cpf || !school || !course) {
+      if (!cpf || !school) {
         return validationErrorWithData(
           res,
-          "Missing required fields for Student registration.",
-          { cpf, school, course }
+          "Campos obrigatórios faltando para registro de estudante.",
+          { cpf, school }
         );
       }
 
-      // Buscar a escola pelo nome
-      const schoolRecord = await School.findOne({ name: school });
+      const schoolId = mongoose.Types.ObjectId.isValid(school)
+        ? new mongoose.Types.ObjectId(school)
+        : null;
+      if (!schoolId) {
+        return validationErrorWithData(
+          res,
+          "Formato de ID da escola inválido.",
+          {
+            school,
+          }
+        );
+      }
+
+      const schoolRecord = await School.findById(schoolId);
       if (!schoolRecord) {
-        return validationErrorWithData(res, "School not found.", { school });
+        return validationErrorWithData(res, "Escola não encontrada.", {
+          school,
+        });
       }
 
       user = new Student({
         ...commonFields,
         cpf,
-        school: schoolRecord._id, // Associar o ObjectId da escola
-        course,
+        school: schoolRecord._id,
+        course: req.body.course,
       });
     } else if (accountType === "School") {
-      const { cnpj, courses } = req.body;
       if (!cnpj || !courses) {
         return validationErrorWithData(
           res,
-          "Missing required fields for School registration.",
+          "Campos obrigatórios faltando para registro de escola.",
           { cnpj, courses }
         );
       }
+
       user = new School({
         ...commonFields,
         cnpj,
         courses,
       });
     } else if (accountType === "Company") {
-      const { cnpj } = req.body;
       if (!cnpj) {
         return validationErrorWithData(
           res,
-          "Missing required fields for Company registration.",
+          "Campo CNPJ é obrigatório para registro de empresa.",
           { cnpj }
         );
       }
+
       user = new Company({
         ...commonFields,
         cnpj,
       });
     } else {
-      return errorResponse(res, "INVALID_ACCOUNT_TYPE");
+      return errorResponse(res, "TIPO_DE_CONTA_INVALIDO");
     }
 
+    // Salva o usuário no banco de dados
     await user.save();
-    return successResponseWithData(res, "User registered successfully.", user);
+    return successResponseWithData(res, "Usuário registrado com sucesso.", {
+      userId: user._id,
+      email,
+    });
   } catch (error) {
     console.error(error);
     if (error.name === "ValidationError") {
-      return validationErrorWithData(res, "Validation failed.", error.errors);
+      return validationErrorWithData(res, "Falha na validação.", error.errors);
     }
-    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+    return errorResponse(res, "ERRO_INTERNO_DO_SERVIDOR");
   }
 };
 
-// Função para verificar o OTP
-exports.verifyOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+exports.signin = async (req, res) => {
+  const { email, password } = req.body;
 
-    if (!verifyOtp(email, otp)) {
-      return errorResponse(res, "INVALID_OTP");
+  try {
+    let user;
+
+    // Tenta encontrar o usuário com base no e-mail
+    user = await Student.findOne({ email });
+    if (!user) {
+      user = await School.findOne({ email });
+      if (!user) user = await Company.findOne({ email });
     }
 
-    return successResponseWithData(res, "OTP verified successfully.", {});
-  } catch (error) {
-    console.error(error);
-    return errorResponse(res, "INTERNAL_SERVER_ERROR");
-  }
-};
-
-// Função para re-enviar o OTP (opcional, se necessário)
-exports.resendOtp = async (req, res) => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      return validationErrorWithData(res, "Email is required.", { email });
+    // Verifica se o usuário foi encontrado
+    if (!user) {
+      console.log("Usuário não encontrado:", email);
+      return errorResponse(res, "Email ou senha estão incorretos.");
     }
 
-    const generatedOtp = generateOtp();
-    storeOtp(email, generatedOtp);
-    await sendOtpEmail(email, generatedOtp);
+    // Logs para depuração
+    console.log("Senha fornecida:", password);
+    console.log("Hash armazenado:", user.password);
 
-    return successResponseWithData(
-      res,
-      "An OTP has been sent to your email.",
-      {}
+    // Comparar a senha inserida com o hash armazenado
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log("A senha é válida?", isPasswordValid); // Log para ver se a senha corresponde
+    if (!isPasswordValid) {
+      console.log("Senha incorreta para o usuário:", email);
+      return errorResponse(res, "Email ou senha estão incorretos.");
+    }
+
+    // Gera o token JWT
+    const token = jwt.sign(
+      { userId: user._id, accountType: user.constructor.modelName },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" } // Token válido por 7 dias
     );
+    console.log("Token gerado:", token); // Log do token gerado
+
+    // Resposta de sucesso com o token
+    return successResponseWithData(res, "Login bem-sucedido.", { token });
   } catch (error) {
-    console.error(error);
-    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+    console.error("Erro no login:", error);
+    return errorResponse(res, error.message || "ERRO_INTERNO_DO_SERVIDOR");
   }
 };
-
-// // exports.signin = async (req, res) => {};
-
-// // exports.signout = (req, res) => {};
-
-// // exports.verifyMail = async (req, res) => {};
-
-// // exports.resendConfirmOtp = async (req, res) => {};
-
-// // exports.forgotPassword = (req, res) => {};
-
-// // exports.resetPassword = (req, res) => {};
