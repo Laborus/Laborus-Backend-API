@@ -1,16 +1,20 @@
 const express = require("express");
 const router = express.Router();
+const submittUpload = require("../utils/upload");
 const {
   createChallenge,
-  challengesByCourse,
   getChallengeFile,
   challengeById,
   getAllChallenges,
-  countChallenges,
   challengesByUser,
   updateChallenge,
   deleteChallenge,
   getChallengesByDifficulty,
+  submitChallenge,
+  cancelSubmission,
+  updateSubmissionStatus,
+  getAllSubmissions,
+  getSubmissionsForChallenge,
 } = require("../controllers/challenge.controller");
 const authenticateJWT = require("../middlewares/JWT.middleware"); // Ajuste o caminho conforme necessário
 
@@ -26,5 +30,35 @@ router.get("/challenges", authenticateJWT, getAllChallenges);
 router.get("/challenges/user", authenticateJWT, challengesByUser);
 router.put("/challenges/:id", authenticateJWT, updateChallenge);
 router.delete("/challenges/:id", authenticateJWT, deleteChallenge);
+
+// Submit a Challenge
+router.post(
+  "/submit-challenge",
+  authenticateJWT,
+  submittUpload,
+  submitChallenge
+);
+
+// Route to get all submissions
+// router.get("/submissions", getAllSubmissions);
+
+// Cancel Submission
+router.post("/cancel-submission", authenticateJWT, cancelSubmission);
+
+// Get Submissions for a Challenge
+// router.get(
+//   "/submissions/:challengeId",
+//   authenticateJWT,
+//   getSubmissionsForChallenge
+// );
+
+// Approved Or Reject Submission
+
+// Route for updating the status of a submission
+router.put(
+  "/submissions/:submissionId/status", // Route to update submission status
+  authenticateJWT, // Ensure the user is authenticated
+  updateSubmissionStatus // Controller function to handle the request
+);
 
 module.exports = router;

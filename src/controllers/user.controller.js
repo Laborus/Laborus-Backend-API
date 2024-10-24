@@ -86,14 +86,12 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Edit Profile
-
 exports.editUser = [
   authenticateJWT,
   async (req, res) => {
     try {
       const userId = req.params.id;
-      const { name, email, otherFields } = req.body; // Campos que podem ser atualizados
+      const { name, otherFields } = req.body; // Campos que podem ser atualizados
 
       let user = await Student.findById(userId);
       if (!user) {
@@ -107,7 +105,12 @@ exports.editUser = [
 
       // Atualiza os campos
       if (name) user.name = name;
-      if (email) user.email = email;
+
+      // Impede a atualização do e-mail
+      if (req.body.email) {
+        return errorResponse(res, "Email cannot be changed.");
+      }
+
       if (otherFields) user.otherFields = otherFields;
 
       // Salva as alterações

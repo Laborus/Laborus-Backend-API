@@ -41,6 +41,12 @@ const schoolSchema = new mongoose.Schema({
       message: "Courses must be an array of course names.",
     },
   },
+  submissions: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ChallengeResponse",
+    },
+  ],
   tags: {
     type: [String],
     enum: validTags,

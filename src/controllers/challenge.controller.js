@@ -1,4 +1,5 @@
 const Challenge = require("../models/challenge.model");
+const Submission = require("../models/challenge.response"); // Import the Submission model.
 const School = require("../models/school.model"); // Ajuste o caminho conforme necessário
 const {
   validationErrorWithData,
@@ -355,7 +356,165 @@ exports.deleteChallenge = async (req, res) => {
   }
 };
 
-// exports.challengeSubmit = (req, res) => {};
+// Submit a Challenge
+// Submit a Challenge
+exports.submitChallenge = async (req, res) => {
+  try {
+    console.log("User from request:", req.user);
+
+    const { challengeId } = req.body; // Challenge ID from request body
+    const studentId = req.user.id; // Extract user ID from JWT
+
+    // Check if a submission already exists for the user and the challenge
+    const existingSubmission = await Submission.findOne({
+      userId: studentId,
+      challengeId,
+    });
+    if (existingSubmission) {
+      return res.status(400).json({
+        status: "FAILED",
+        error: "BAD_REQUEST",
+        message: "You have already submitted this challenge.",
+      });
+    }
+
+    // Find the challenge to get the schoolId
+    const challenge = await Challenge.findById(challengeId);
+    if (!challenge) {
+      return res.status(404).json({
+        status: "FAILED",
+        error: "NOT_FOUND",
+        message: "Challenge not found.",
+      });
+    }
+
+    // Create a new submission
+    const newSubmission = new Submission({
+      userId: studentId, // Reference to the student
+      challengeId, // Reference to the challenge
+      schoolId: challenge.school, // Save the school ID from the challenge
+      file: {
+        data: req.file.buffer, // File data
+        contentType: req.file.mimetype, // File type
+      },
+      status: "pending", // Default status for new submissions
+    });
+
+    await newSubmission.save(); // Save the new submission
+
+    // Update the school with the new submission
+    await School.findByIdAndUpdate(
+      challenge.school, // Assuming the Challenge model has a 'school' field
+      { $push: { submissions: newSubmission._id } }, // Add new submission ID to school's submissions array
+      { new: true } // Return the updated document
+    );
+
+    return successResponseWithData(
+      res,
+      "Challenge submitted successfully.",
+      newSubmission
+    );
+  } catch (error) {
+    console.error(error); // Log the error for debugging
+    return errorResponse(res, "INTERNAL_SERVER_ERROR"); // Respond with internal server error
+  }
+};
+
+exports.updateSubmissionStatus = async (req, res) => {
+  try {
+    const { submissionId } = req.params; // Get submission ID from route parameters
+    const { status } = req.body; // Get the new status from the request body
+
+    // Validate the status value
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({
+        status: "FAILED",
+        error: "BAD_REQUEST",
+        message: "Status must be 'approved' or 'rejected'.",
+      });
+    }
+
+    // Find the submission and update its status
+    const updatedSubmission = await Submission.findByIdAndUpdate(
+      submissionId,
+      { status }, // Update status
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedSubmission) {
+      return res.status(404).json({
+        status: "FAILED",
+        error: "NOT_FOUND",
+        message: "Submission not found.",
+      });
+    }
+
+    return successResponseWithData(
+      res,
+      "Submission status updated successfully.",
+      updatedSubmission
+    );
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+exports.cancelSubmission = async (req, res) => {
+  try {
+    const { challengeId } = req.body; // Challenge ID from request body
+    const studentId = req.user.id; // Extract user ID from JWT
+
+    // Find the submission to cancel
+    const submission = await Submission.findOneAndDelete({
+      userId: studentId,
+      challengeId,
+    });
+    if (!submission) {
+      return res.status(404).json({
+        status: "FAILED",
+        error: "NOT_FOUND",
+        message: "Submission not found.",
+      });
+    }
+
+    // Update the school to remove the submission reference
+    const challenge = await Challenge.findById(challengeId);
+    await School.findByIdAndUpdate(
+      challenge.school,
+      { $pull: { submissions: submission._id } },
+      { new: true }
+    );
+
+    return successResponseWithData(
+      res,
+      "Submission canceled successfully.",
+      submission
+    );
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+// Get All Submissions
+// exports.getAllSubmissions = async (req, res) => {
+//   try {
+//     // Fetch all submissions
+//     const submissions = await Submission.find({})
+//       .populate("student") // Populate student details
+//       .populate("challenge"); // Populate challenge details
+
+//     return successResponseWithData(
+//       res,
+//       "Todas as submissões recuperadas com sucesso.",
+//       submissions
+//     );
+//   } catch (error) {
+//     console.error(error);
+//     return errorResponse(res, "Erro ao recuperar as submissões.");
+//   }
+// };
 
 // exports.challengeSolved = (req, res) => {};
 
