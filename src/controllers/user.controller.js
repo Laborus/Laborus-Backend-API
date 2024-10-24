@@ -1,4 +1,5 @@
 const APPLICATION_ERRORS = require("../models/application.errors.enum");
+const authenticateJWT = require("../middlewares/JWT.middleware");
 const {
   successResponseWithData,
   errorResponse,
@@ -85,6 +86,41 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Edit Profile
+
+exports.editUser = [
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const { name, email, otherFields } = req.body; // Campos que podem ser atualizados
+
+      let user = await Student.findById(userId);
+      if (!user) {
+        user = await School.findById(userId);
+        if (!user) user = await Company.findById(userId);
+      }
+
+      if (!user) {
+        return errorResponse(res, "User not found.");
+      }
+
+      // Atualiza os campos
+      if (name) user.name = name;
+      if (email) user.email = email;
+      if (otherFields) user.otherFields = otherFields;
+
+      // Salva as alterações
+      await user.save();
+
+      return successResponseWithData(res, "User updated successfully.", user);
+    } catch (error) {
+      console.error(error);
+      return errorResponse(res, "INTERNAL_SERVER_ERROR");
+    }
+  },
+];
+
 // Get all students
 exports.getAllStudents = async (req, res) => {
   try {
@@ -133,35 +169,38 @@ exports.getAllCompanies = async (req, res) => {
   }
 };
 
-exports.deleteUser = async (req, res) => {
-  try {
-    const userId = req.params.id; // Obtém o ID do usuário da requisição
+exports.deleteUser = [
+  authenticateJWT,
+  async (req, res) => {
+    try {
+      const userId = req.params.id; // Obtém o ID do usuário da requisição
 
-    // Tenta encontrar e deletar o usuário como Student
-    let result = await Student.findByIdAndDelete(userId);
-    if (result) {
-      return successResponse(res, "User deleted successfully.");
+      // Tenta encontrar e deletar o usuário como Student
+      let result = await Student.findByIdAndDelete(userId);
+      if (result) {
+        return successResponse(res, "User deleted successfully.");
+      }
+
+      // Se não encontrar, tenta como School
+      result = await School.findByIdAndDelete(userId);
+      if (result) {
+        return successResponse(res, "User deleted successfully.");
+      }
+
+      // Se ainda não encontrar, tenta como Company
+      result = await Company.findByIdAndDelete(userId);
+      if (result) {
+        return successResponse(res, "User deleted successfully.");
+      }
+
+      // Se não encontrar em nenhum dos três, retorna NOT_FOUND
+      return errorResponse(res, "NOT_FOUND");
+    } catch (error) {
+      console.error(error);
+      return errorResponse(res, "INTERNAL_SERVER_ERROR");
     }
-
-    // Se não encontrar, tenta como School
-    result = await School.findByIdAndDelete(userId);
-    if (result) {
-      return successResponse(res, "User deleted successfully.");
-    }
-
-    // Se ainda não encontrar, tenta como Company
-    result = await Company.findByIdAndDelete(userId);
-    if (result) {
-      return successResponse(res, "User deleted successfully.");
-    }
-
-    // Se não encontrar em nenhum dos três, retorna NOT_FOUND
-    return errorResponse(res, "NOT_FOUND");
-  } catch (error) {
-    console.error(error);
-    errorResponse(res, "INTERNAL_SERVER_ERROR");
-  }
-};
+  },
+];
 
 exports.deleteAllUsers = async (req, res) => {
   try {

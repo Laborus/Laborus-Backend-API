@@ -1,20 +1,28 @@
 const jwt = require("jsonwebtoken");
-const { errorResponse } = require("../utils/api.response");
+const { unauthorizedResponse } = require("../utils/api.response"); // Ajuste o caminho conforme necessário
 
 const authenticateJWT = (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1]; // O token geralmente é enviado no formato "Bearer <token>"
+  const token = req.header("Authorization");
 
   if (!token) {
-    return errorResponse(res, "Acesso negado. Token não fornecido.");
+    return unauthorizedResponse(res, "Token não fornecido."); // Usar a padronização
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return errorResponse(res, "Token inválido.");
-    }
-    req.user = user; // Anexa o objeto do usuário decodificado à requisição
-    next(); // Chama o próximo middleware ou a rota
-  });
+  // O token deve ter o prefixo "Bearer"
+  const bearerToken = token.split(" ")[1];
+  if (!bearerToken) {
+    return unauthorizedResponse(res, "Token inválido."); // Usar a padronização
+  }
+
+  try {
+    // Verifique o token
+    const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
+    req.userId = decoded.userId; // Assuma que o ID do usuário é codificado no token
+    next();
+  } catch (error) {
+    console.error("Token verification error:", error); // Log do erro
+    return unauthorizedResponse(res, "Token inválido."); // Usar a padronização
+  }
 };
 
-module.exports = { authenticateJWT };
+module.exports = authenticateJWT;

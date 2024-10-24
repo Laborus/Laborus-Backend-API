@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 const Student = require("../models/student.model");
 const School = require("../models/school.model");
 const Company = require("../models/company.model");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const {
   successResponseWithData,
@@ -15,7 +15,7 @@ exports.signup = async (req, res) => {
     const {
       name,
       email,
-      password,
+      password, // A senha será criptografada
       accountType,
       location,
       tags,
@@ -25,10 +25,10 @@ exports.signup = async (req, res) => {
       saved,
       savedItemType,
       following,
-      cpf, // Para Student
-      cnpj, // Para School e Company
-      courses, // Para School
-      school, // Para Student
+      cpf,
+      cnpj,
+      courses,
+      school,
     } = req.body;
 
     // Verifica se o e-mail já está registrado em qualquer uma das coleções
@@ -41,13 +41,16 @@ exports.signup = async (req, res) => {
       return validationErrorWithData(res, "Email já está em uso.", { email });
     }
 
+    // Criptografa a senha antes de armazenar
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Campos comuns a todos os tipos de usuário
     const commonFields = {
       name,
       email,
-      password: await bcrypt.hash(password, 10), // Hash da senha
+      password: hashedPassword, // Armazenar a senha criptografada
       accountType,
-      isEmailVerified: false, // Considerar o valor padrão como false
+      isEmailVerified: false,
       accountStatus: "active",
       isOnline: false,
       location,
@@ -79,9 +82,7 @@ exports.signup = async (req, res) => {
         return validationErrorWithData(
           res,
           "Formato de ID da escola inválido.",
-          {
-            school,
-          }
+          { school }
         );
       }
 
@@ -164,26 +165,30 @@ exports.signin = async (req, res) => {
     }
 
     // Logs para depuração
-    console.log("Senha fornecida:", password);
-    console.log("Hash armazenado:", user.password);
+    // console.log("Senha fornecida:", password);
+    // console.log("Senha armazenada:", user.password);
 
-    // Comparar a senha inserida com o hash armazenado
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log("A senha é válida?", isPasswordValid); // Log para ver se a senha corresponde
-    if (!isPasswordValid) {
-      console.log("Senha incorreta para o usuário:", email);
-      return errorResponse(res, "Email ou senha estão incorretos.");
+    // Comparar a senha inserida com a senha armazenada (criptografada)
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res
+        .status(401)
+        .json({ status: "FAILED", message: "Credenciais inválidas." });
     }
+
+    // Atualizar o atributo isOnline para true
+    user.isOnline = true;
+    await user.save(); // Salva a alteração no banco de dados
 
     // Gera o token JWT
     const token = jwt.sign(
       { userId: user._id, accountType: user.constructor.modelName },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" } // Token válido por 7 dias
+      process.env.JWT_SECRET, // A chave secreta para assinatura
+      { expiresIn: "7d" }
     );
+
     console.log("Token gerado:", token); // Log do token gerado
 
-    // Resposta de sucesso com o token
     return successResponseWithData(res, "Login bem-sucedido.", { token });
   } catch (error) {
     console.error("Erro no login:", error);

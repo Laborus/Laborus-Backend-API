@@ -5,15 +5,23 @@ const {
   successResponseWithData,
   errorResponse,
 } = require("../utils/api.response");
-const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
+
+const uploadDir = path.resolve(__dirname, "../uploads/others"); // Caminho relativo a partir de 'controllers'
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/others");
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    // Cria o nome do arquivo com o prefixo "Laborus-File" e a extensão original
+    const uniqueSuffix = Date.now() + path.extname(file.originalname);
+    cb(null, `Laborus-File-${uniqueSuffix}`); // Formato final do nome do arquivo
   },
 });
 
@@ -30,7 +38,7 @@ const upload = multer({
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb("Error: Arquivo deve ser um documento ou apresentação");
+      cb(new Error("Arquivo deve ser um documento ou apresentação"));
     }
   },
 }).single("file");
@@ -55,8 +63,11 @@ const checkSchoolUser = async (req, res) => {
 
 exports.createChallenge = async (req, res) => {
   // Verifica se o usuário é do tipo "school"
-  const userCheckResult = await checkSchoolUser(req, res);
-  if (userCheckResult) return; // Se houver um erro na verificação, encerra a função
+  try {
+    await checkSchoolUser(req, res); // Verifica se o usuário é do tipo "school"
+  } catch (error) {
+    return errorResponse(res, error.message); // Retorna a mensagem de erro se a verificação falhar
+  }
 
   upload(req, res, async (err) => {
     if (err) {
@@ -158,10 +169,87 @@ exports.challengeById = async (req, res) => {
 exports.getAllChallenges = async (req, res) => {
   try {
     const challenges = await Challenge.find().populate("course school");
+
+    // Contagem de desafios
+    const totalChallenges = challenges.length;
+
     return successResponseWithData(
       res,
       "Desafios recuperados com sucesso.",
-      challenges
+      { totalChallenges, challenges } // Envia a lista de desafios e a contagem
+    );
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+// Desafios por Dificuldade
+
+exports.getChallengesByDifficulty = async (req, res) => {
+  try {
+    // Obtem a dificuldade a partir do query param, ex: ?difficulty=Medium
+    const { difficulty } = req.query;
+
+    // Verifica se o parâmetro foi fornecido
+    if (!difficulty) {
+      return errorResponse(
+        res,
+        "BAD_REQUEST",
+        "O parâmetro 'difficulty' é obrigatório."
+      );
+    }
+
+    // Busca desafios pela dificuldade fornecida
+    const challenges = await Challenge.find({ difficulty }).populate(
+      "course school"
+    );
+
+    // Contagem de desafios encontrados para essa dificuldade
+    const totalChallenges = challenges.length;
+
+    return successResponseWithData(
+      res,
+      `Desafios de dificuldade ${difficulty} recuperados com sucesso.`,
+      { challenges, totalChallenges }
+    );
+  } catch (error) {
+    console.error(error);
+    return errorResponse(res, "INTERNAL_SERVER_ERROR");
+  }
+};
+
+exports.getChallengesByDifficulty = async (req, res) => {
+  try {
+    // Obtem a dificuldade a partir do query param, ex: ?difficulty=Medium
+    const { difficulty } = req.query;
+
+    // Verifica se o parâmetro foi fornecido
+    if (!difficulty) {
+      return errorResponse(
+        res,
+        "BAD_REQUEST",
+        "O parâmetro 'difficulty' é obrigatório."
+      );
+    }
+
+    // Busca desafios pela dificuldade fornecida
+    const challenges = await Challenge.find({ difficulty }).populate(
+      "course school"
+    );
+
+    // Contagem de desafios encontrados para essa dificuldade
+    const totalChallenges = challenges.length;
+
+    // Retorna a resposta com a dificuldade, lista de desafios e contagem
+    return successResponseWithData(
+      res,
+      `Desafios de dificuldade ${difficulty} recuperados com sucesso.`,
+      {
+        difficulty, // Inclui o nível de dificuldade
+        totalChallenges,
+        challenges,
+      }
     );
   } catch (error) {
     console.error(error);

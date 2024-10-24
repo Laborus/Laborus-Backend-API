@@ -191,32 +191,6 @@ const validateUser = (req, res, next) => {
   return validate(schema)(req, res, next);
 };
 
-const encryptPassword = async (req, res, next) => {
-  try {
-    const { password } = req.body;
-
-    if (!password) {
-      return res.status(400).json({
-        status: "error",
-        message: "Password is required.",
-      });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    req.body.password = hashedPassword;
-
-    next();
-  } catch (error) {
-    console.error("Error hashing password:", error);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to hash password.",
-    });
-  }
-};
-
 async function checkDuplicateUser(req, res, next) {
   try {
     const { email, cpf, cnpj } = req.body;
@@ -265,4 +239,4 @@ async function checkDuplicateUser(req, res, next) {
   }
 }
 
-module.exports = { validateUser, encryptPassword, checkDuplicateUser };
+module.exports = { validateUser, checkDuplicateUser };

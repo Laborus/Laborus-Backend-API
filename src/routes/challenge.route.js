@@ -1,29 +1,30 @@
 const express = require("express");
 const router = express.Router();
-const challengeController = require("../controllers/challenge.controller");
-const { authenticateJWT } = require("../middlewares/JWT.middleware"); // Middleware de autenticação, se necessário
+const {
+  createChallenge,
+  challengesByCourse,
+  getChallengeFile,
+  challengeById,
+  getAllChallenges,
+  countChallenges,
+  challengesByUser,
+  updateChallenge,
+  deleteChallenge,
+  getChallengesByDifficulty,
+} = require("../controllers/challenge.controller");
+const authenticateJWT = require("../middlewares/JWT.middleware"); // Ajuste o caminho conforme necessário
 
-// Rota para criar um novo desafio
-router.post("/challenge", challengeController.createChallenge);
+// Definição das rotas com autenticação JWT
+router.post("/challenge", authenticateJWT, createChallenge);
+// router.get("/challenges/course/:courseId", authenticateJWT, challengesByCourse);
+router.get("/challenges/difficulty", getChallengesByDifficulty);
 
-router.get("/challenges", challengeController.getAllChallenges);
-
-router.get("/count", authenticateJWT, challengeController.countChallenges);
-
-router.get("/:id", authenticateJWT, challengeController.challengeById);
-
-router.get("/user", authenticateJWT, challengeController.challengesByUser);
-
-router.get(
-  "/course/:courseId",
-  authenticateJWT,
-  challengeController.challengesByCourse
-);
-
-router.get("/file/:id", authenticateJWT, challengeController.getChallengeFile);
-
-router.put("/:id", authenticateJWT, challengeController.updateChallenge);
-
-router.delete("/:id", authenticateJWT, challengeController.deleteChallenge);
+router.get("/challenges/:id/file", authenticateJWT, getChallengeFile);
+router.get("/challenges/:id", authenticateJWT, challengeById);
+router.get("/challenges", authenticateJWT, getAllChallenges);
+// router.get("/challenges/count", authenticateJWT, countChallenges);
+router.get("/challenges/user", authenticateJWT, challengesByUser);
+router.put("/challenges/:id", authenticateJWT, updateChallenge);
+router.delete("/challenges/:id", authenticateJWT, deleteChallenge);
 
 module.exports = router;
