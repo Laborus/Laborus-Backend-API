@@ -11,9 +11,14 @@ const jobSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  jobType: {
+    type: String,
+    enum: ["ESTAGIO", "APRENDIZ"], // Adiciona o atributo jobType
+    required: true,
+  },
   company: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Company",
     required: true,
   },
   location: {
@@ -44,6 +49,7 @@ const jobSchema = new mongoose.Schema({
   description: {
     type: String,
     required: true,
+    max: [350, "AboutContent must not exceeds 350 characters."],
   },
   createdAt: {
     type: Date,
@@ -52,6 +58,11 @@ const jobSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
+  },
+  candidates: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: "Student",
+    default: [],
   },
 });
 

@@ -50,16 +50,16 @@ const studentSchema = new mongoose.Schema({
       message: "Tags must not exceeds 3 items.",
     },
   },
+  inbox: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ConnectionRequest", // Reference to the ConnectionRequest model
+    },
+  ],
   connections: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Student",
-      validate: {
-        validator: function (connections) {
-          return !connections.includes(this.student);
-        },
-        message: "A user cannot connect to themselves.",
-      },
     },
   ],
   aboutContent: {
@@ -108,7 +108,11 @@ const studentSchema = new mongoose.Schema({
   following: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Company", // Referência à Company
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School", // Referência à School
     },
   ],
 });

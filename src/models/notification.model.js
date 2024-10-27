@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const notificationSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Student",
     required: true,
   },
   type: {
@@ -34,7 +34,20 @@ const notificationSchema = new mongoose.Schema({
   },
   relatedObjectType: {
     type: String,
-    enum: ["Post", "Comment"],
+    enum: [
+      "Post",
+      "Comment",
+      "Job",
+      "Challenge",
+      "SchoolUpdate",
+      "SchoolEvent",
+      "ChatMessage", // Adicione o tipo de mensagem de chat
+    ],
+  },
+  notificationType: {
+    type: String,
+    enum: Object.keys(NOTIFICATION_TYPES),
+    required: true,
   },
 });
 

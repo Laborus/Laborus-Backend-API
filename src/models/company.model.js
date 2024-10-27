@@ -103,7 +103,31 @@ const companySchema = new mongoose.Schema({
   following: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "School",
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+    },
+  ],
+  followers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School",
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+    },
+  ],
+  jobPostings: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Job", // Referência ao modelo Job
     },
   ],
 });

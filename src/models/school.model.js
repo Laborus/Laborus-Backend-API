@@ -126,6 +126,20 @@ const schoolSchema = new mongoose.Schema({
       ref: "Company",
     },
   ],
+  followers: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "School",
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+    },
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+    },
+  ],
 });
 
 module.exports = mongoose.model("School", schoolSchema);

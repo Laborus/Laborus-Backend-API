@@ -1,44 +1,32 @@
 const express = require("express");
 const router = express.Router();
 const jobController = require("../controllers/jobs.controller");
-const authMiddleware = require("../middlewares/JWT.middleware");
+const authenticate = require("../middlewares/JWT.middleware");
+const submittUpload = require("../utils/upload");
 
-// Criar uma nova vaga de emprego
-router.post("/jobs", authMiddleware.verifyCompany, jobController.createJob);
+router.get("/jobs", jobController.getAllJobs);
+router.get("/jobs/:jobId", jobController.getJobById);
+router.post("/job", authenticate, jobController.createJob);
+// Rota para editar uma vaga de emprego
+router.put("/jobs/:jobId", authenticate, jobController.updateJob);
+router.delete("/jobs/:jobId", jobController.deleteJob);
+router.delete("/delete-jobs", jobController.deleteAllJobs);
 
-// Atualizar uma vaga de emprego
-router.put(
-  "/jobs/:jobId",
-  authMiddleware.verifyCompany,
-  jobController.updateJob
-);
-
-// Deletar uma vaga de emprego
-router.delete(
-  "/jobs/:jobId",
-  authMiddleware.verifyCompany,
-  jobController.deleteJob
-);
-
-// Enviar aplicação para uma vaga de emprego
 router.post(
-  "/jobs/apply",
-  authMiddleware.verifyStudent,
+  "/jobs/submit",
+  authenticate,
+  submittUpload,
   jobController.submitJob
 );
 
-// Listar estudantes que aplicaram para a vaga
-router.get(
-  "/jobs/:jobId/applications",
-  authMiddleware.verifyCompany,
-  jobController.submittedStudents
+// Rota para cancelar uma submissão de trabalho
+router.delete(
+  "/jobs/cancel/:submissionId",
+  authenticate,
+  jobController.cancelJobSubmission
 );
 
-// Reportar uma vaga de emprego
-router.post(
-  "/jobs/:jobId/report",
-  authMiddleware.verifyStudent,
-  jobController.reportJob
-);
+// Rota para listar vagas de emprego do tipo ESTAGIO ou APRENDIZ
+router.get("/jobs/by-type", jobController.getJobsByType);
 
 module.exports = router;

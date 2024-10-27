@@ -8,7 +8,7 @@ router.get("/students", userController.getAllStudents);
 router.get("/schools", userController.getAllSchools);
 router.get("/companies", userController.getAllCompanies);
 router.get("/users/:id", userController.getUserById);
-router.put("/edit/:id", authenticateJWT, userController.editUser);
+
 router.delete("/user/:id", authenticateJWT, async (req, res) => {
   try {
     const userId = req.params.id;

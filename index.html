@@ -1,0 +1,37 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Test</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Conectado ao servidor Socket.IO');
+            socket.emit('joinConversation', 'some_conversation_id'); // Use um ID de conversa real aqui
+        });
+
+        socket.on('messageReceived', (message) => {
+            console.log('Mensagem recebida:', message);
+        });
+
+        function sendMessage() {
+            const messageData = {
+                conversationId: 'some_conversation_id', // Use um ID de conversa real aqui
+                sender: 'your_sender_id', // Substitua pelo ID do remetente
+                text: 'Hello, this is a test message!'
+            };
+            socket.emit('sendMessage', messageData);
+        }
+    </script>
+</head>
+
+<body>
+    <h1>Teste do Socket.IO</h1>
+    <button onclick="sendMessage()">Enviar Mensagem</button>
+</body>
+
+</html> -->

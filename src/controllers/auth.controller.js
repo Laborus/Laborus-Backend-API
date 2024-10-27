@@ -195,3 +195,4 @@ exports.signin = async (req, res) => {
     return errorResponse(res, error.message || "ERRO_INTERNO_DO_SERVIDOR");
   }
 };
+
