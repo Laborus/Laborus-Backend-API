@@ -5,6 +5,8 @@ const appRouter = require("./src/routes/app");
 const apiRouter = require("./src/routes/api");
 const http = require("http");
 const socketIo = require("socket.io");
+const cors = require("cors"); 
+
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 3333;
@@ -12,7 +14,7 @@ const PORT = process.env.SERVER_PORT || 3333;
 dotenv.config();
 
 // Route prefixes
-
+app.use(cors());
 app.use(express.json());
 app.use("/", appRouter);
 app.use("/api/", apiRouter);
