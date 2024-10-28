@@ -1,6 +1,7 @@
 const Post = require("../models/post.model");
 const Student = require("../models/student.model");
 const School = require("../models/school.model")
+const Comment = require('../models/comment.model')
 
 exports.createPostForCampus = async (req, res) => {
   const { title, textContent, image, video } = req.body;
@@ -75,47 +76,72 @@ exports.createPost = async (req, res) => {
 };
 
 
-// Busca todos os posts globais
+// Busca todos os posts globais e seus comentários
 exports.getGlobalPosts = async (req, res) => {
   try {
     const globalPosts = await Post.find({ postedOn: "Global" })
-      .populate("postedBy")
+      .populate("postedBy") // Popula os dados do autor do post
       .exec();
 
-    return res.status(200).json(globalPosts);
+    // Busca e adiciona os comentários de cada post
+    const postsWithComments = await Promise.all(
+      globalPosts.map(async (post) => {
+        const comments = await Comment.find({ postId: post._id }).exec();
+        return { ...post.toObject(), comments }; // Adiciona os comentários ao post
+      })
+    );
+
+    return res.status(200).json(postsWithComments);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erro ao buscar posts globais", error });
   }
 };
 
-// Busca todos os posts de um campus específico
+// Busca todos os posts de um campus específico e seus comentários
 exports.getCampusPosts = async (req, res) => {
   const { campusId } = req.params;
   try {
     const campusPosts = await Post.find({ campusId })
-      .populate("postedBy")
+      .populate("postedBy") // Popula os dados do autor do post
       .exec();
 
     if (campusPosts.length === 0) {
       return res.status(404).json({ message: "Nenhum post encontrado para este campus." });
     }
 
-    return res.status(200).json(campusPosts);
+    // Busca e adiciona os comentários de cada post
+    const postsWithComments = await Promise.all(
+      campusPosts.map(async (post) => {
+        const comments = await Comment.find({ postId: post._id }).exec();
+        return { ...post.toObject(), comments }; // Adiciona os comentários ao post
+      })
+    );
+
+    return res.status(200).json(postsWithComments);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erro ao buscar posts do campus", error });
   }
 };
 
+
 // Busca um post pelo ID
 exports.postById = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate("postedBy").exec();
+    const post = await Post.findById(req.params.id).exec(); // Busque o post
+
     if (!post) {
       return res.status(404).json({ message: "Post não encontrado" });
     }
-    return res.status(200).json(post);
+
+    // Busque os comentários associados ao post
+    const comments = await Comment.find({ postId: post._id }).exec();
+
+    // Adicione os comentários ao post
+    post.comments = comments;
+
+    return res.status(200).json(post); // Retorne o post com os comentários
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erro ao buscar post", error });
