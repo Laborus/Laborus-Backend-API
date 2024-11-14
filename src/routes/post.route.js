@@ -1,0 +1,39 @@
+const express = require("express");
+const router = express.Router();
+const postController = require("../controllers/post.controller");
+const authenticateJWT = require("../middlewares/JWT.middleware");
+
+// Rota para criar um novo post (global)
+router.post("/", authenticateJWT, postController.createPost); // Global
+
+// Rota para criar um novo post para um campus específico
+router.post("/:campusId", authenticateJWT, postController.createPostForCampus); // Campus
+
+// Rota para buscar todos os posts globais
+router.get("/global", authenticateJWT, postController.getGlobalPosts);
+
+// Rota para buscar todos os posts de um campus específico
+router.get("/campus/:campusId", authenticateJWT, postController.getCampusPosts);
+
+// Rota para buscar um post específico pelo ID
+router.get("/:id", authenticateJWT, postController.postById);
+
+// Rota para atualizar um post pelo ID
+router.put("/:id", authenticateJWT, postController.updatePost);
+
+// Rota para deletar um post pelo ID
+router.delete("/:id", authenticateJWT, postController.deletePost);
+
+// Rota para curtir um post (apenas 1 like por usuário)
+router.post("/:id/like", authenticateJWT, postController.like);
+
+// Rota para descurtir um post (apenas 1 dislike por usuário)
+router.post("/:id/dislike", authenticateJWT, postController.dislike);
+
+// Rota para compartilhar um post
+router.post("/:id/share", authenticateJWT, postController.sharePost);
+
+// Rota para reportar um post (apenas 1 report por usuário)
+router.post("/:id/report", authenticateJWT, postController.reportPost);
+
+module.exports = router;

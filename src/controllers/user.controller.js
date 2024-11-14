@@ -8,6 +8,9 @@ const {
 const Student = require("../models/student.model");
 const School = require("../models/school.model");
 const Company = require("../models/company.model");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 exports.getUserById = async (req, res) => {
   try {
@@ -86,41 +89,95 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+// Configurações para o armazenamento e limites de arquivo
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/images"); // Pasta temporária para salvar as imagens
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname); // Nome único para cada imagem
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 3 * 1024 * 1024 }, // Limite de 3MB
+  fileFilter: (req, file, cb) => {
+    // Verifica se o arquivo é do tipo JPEG, PNG ou JPG
+    if (
+      file.mimetype === "image/jpeg" ||
+      file.mimetype === "image/png" ||
+      file.mimetype === "image/jpg"
+    ) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Formato de arquivo inválido. Somente JPEG, PNG ou JPG são permitidos."
+        )
+      );
+    }
+  },
+}).fields([{ name: "profileImage" }, { name: "bannerImage" }]); // Aceita os dois campos
+
 exports.editUser = [
   authenticateJWT,
-  async (req, res) => {
-    try {
-      const userId = req.params.id;
-      const { name, otherFields } = req.body; // Campos que podem ser atualizados
-
-      let user = await Student.findById(userId);
-      if (!user) {
-        user = await School.findById(userId);
-        if (!user) user = await Company.findById(userId);
+  (req, res) => {
+    upload(req, res, async (err) => {
+      if (err) {
+        return errorResponse(
+          res,
+          err.message || "Erro ao fazer upload de arquivo."
+        );
       }
 
-      if (!user) {
-        return errorResponse(res, "User not found.");
+      try {
+        const userId = req.params.id;
+        const { name, otherFields } = req.body;
+
+        let user = await Student.findById(userId);
+        if (!user) {
+          user = await School.findById(userId);
+          if (!user) user = await Company.findById(userId);
+        }
+
+        if (!user) {
+          return errorResponse(res, "User not found.");
+        }
+
+        // Atualiza campos permitidos
+        if (name) user.name = name;
+        if (otherFields) user.otherFields = otherFields;
+
+        // Verifica e impede a atualização do e-mail
+        if (req.body.email) {
+          return errorResponse(res, "Email cannot be changed.");
+        }
+
+        // Converte as imagens para base64 e atualiza o campo no banco de dados
+        if (req.files.profileImage) {
+          const profileImagePath = req.files.profileImage[0].path;
+          const profileImageData = fs.readFileSync(profileImagePath);
+          user.profileImage = profileImageData.toString("base64");
+          fs.unlinkSync(profileImagePath); // Remove o arquivo temporário
+        }
+
+        if (req.files.bannerImage) {
+          const bannerImagePath = req.files.bannerImage[0].path;
+          const bannerImageData = fs.readFileSync(bannerImagePath);
+          user.bannerImage = bannerImageData.toString("base64");
+          fs.unlinkSync(bannerImagePath); // Remove o arquivo temporário
+        }
+
+        // Salva as alterações
+        await user.save();
+
+        return successResponseWithData(res, "User updated successfully.", user);
+      } catch (error) {
+        console.error(error);
+        return errorResponse(res, "INTERNAL_SERVER_ERROR");
       }
-
-      // Atualiza os campos
-      if (name) user.name = name;
-
-      // Impede a atualização do e-mail
-      if (req.body.email) {
-        return errorResponse(res, "Email cannot be changed.");
-      }
-
-      if (otherFields) user.otherFields = otherFields;
-
-      // Salva as alterações
-      await user.save();
-
-      return successResponseWithData(res, "User updated successfully.", user);
-    } catch (error) {
-      console.error(error);
-      return errorResponse(res, "INTERNAL_SERVER_ERROR");
-    }
+    });
   },
 ];
 

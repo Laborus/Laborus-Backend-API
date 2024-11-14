@@ -7,6 +7,7 @@ const connectionsRouter = require("./connections.route");
 const followRouter = require("./follow.route");
 const saveRouter = require("./save.route");
 const chatRouter = require("./chat.route");
+const alertRouter = require("./alert.route");
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use("", challengeRouter);
 app.use("", jobsRouter);
 app.use("", connectionsRouter);
 app.use("", followRouter);
+app.use("", alertRouter);
 
 // app.use("", saveRouter);
 app.use("/chat/", chatRouter);

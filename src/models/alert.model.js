@@ -5,10 +5,11 @@ const alertSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please! Title is required."],
     trim: true,
+    max: [80, "Title must not exceeds 80 characters."],
   },
   tag: {
     type: String,
-    enum: ["urgent", "informative"],
+    enum: ["URGENT", "INFORMATIVE"],
     required: [
       true,
       "Please provide the type of alert: 'urgent' or 'informative'.",
@@ -17,10 +18,11 @@ const alertSchema = new mongoose.Schema({
   text: {
     type: String,
     required: [true, "Please! Text is required."],
+    max: [2400, "Text must not exceeds 2400 characters."],
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "School",
     required: true,
   },
   createdAt: {
