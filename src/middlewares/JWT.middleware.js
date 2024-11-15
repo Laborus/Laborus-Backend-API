@@ -1,29 +1,46 @@
 const jwt = require("jsonwebtoken");
-const { unauthorizedResponse } = require("../utils/api.response"); // Ajuste o caminho conforme necessário
+const Blacklist = require("../models/blacklist.model"); // Aquele modelo de Blacklist que você vai criar
+const { unauthorizedResponse } = require("../utils/api.response");
 
-const authenticateJWT = (req, res, next) => {
+const authenticateJWT = async (req, res, next) => {
   const token = req.header("Authorization");
 
   if (!token) {
-    return unauthorizedResponse(res, "Token não fornecido."); // Usar a padronização
+    return unauthorizedResponse(res, "Token não fornecido.");
   }
 
-  const bearerToken = token.split(" ")[1];
+  const bearerToken = token.split(" ")[1]; // Pegando o token do tipo "Bearer token"
   if (!bearerToken) {
-    return unauthorizedResponse(res, "Token inválido."); // Usar a padronização
+    return unauthorizedResponse(res, "Token inválido.");
   }
 
   try {
+    // Verifica se o token está na blacklist
+    const blacklistedToken = await Blacklist.findOne({ token: bearerToken });
+    if (blacklistedToken) {
+      return unauthorizedResponse(res, "Token revogado. Faça login novamente.");
+    }
+
+    // Decodifica o JWT
     const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
+
+    // Adiciona as informações do usuário no objeto req
     req.user = {
-      id: decoded.userId, // O ID do usuário a partir do token
-      userType: decoded.userType, // O tipo do usuário (ex: 'student' ou 'school')
-      school: decoded.school, // A escola do usuário
+      id: decoded.userId,
+      userType: decoded.userType,
+      school: decoded.school,
+      exp: decoded.exp, // Tempo de expiração
+      iat: decoded.iat, // Tempo de criação do token
     };
+
+    // Passa o controle para o próximo middleware ou controlador
     next();
   } catch (error) {
-    console.error("Token verification error:", error);
-    return unauthorizedResponse(res, "Token inválido."); // Usar a padronização
+    console.error("Erro na verificação do token:", error);
+    if (error.name === "TokenExpiredError") {
+      return unauthorizedResponse(res, "Token expirado.");
+    }
+    return unauthorizedResponse(res, "Token inválido.");
   }
 };
 

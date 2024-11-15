@@ -23,6 +23,8 @@ router.post("/signup", validateUser, checkDuplicateUser, AuthController.signup);
 
 router.post("/signin", AuthController.signin);
 
+router.post("/logout", AuthController.logout);
+
 router.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 

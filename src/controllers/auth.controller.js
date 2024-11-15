@@ -4,6 +4,7 @@ const Student = require("../models/student.model");
 const School = require("../models/school.model");
 const Company = require("../models/company.model");
 const jwt = require("jsonwebtoken");
+const Blacklist = require("../models/blacklist.model");
 const {
   successResponseWithData,
   errorResponse,
@@ -187,6 +188,13 @@ exports.signin = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // Adiciona o token anterior à blacklist para invalidá-lo
+    const previousToken = req.header("Authorization");
+    if (previousToken) {
+      const blacklistedToken = new Blacklist({ token: previousToken });
+      await blacklistedToken.save();
+    }
+
     console.log("Token gerado:", token); // Log do token gerado
 
     return successResponseWithData(res, "Login bem-sucedido.", { token });
@@ -196,3 +204,27 @@ exports.signin = async (req, res) => {
   }
 };
 
+exports.logout = async (req, res) => {
+  try {
+    const token = req.header("Authorization").split(" ")[1]; // Pegando o token do Authorization Header
+
+    if (!token) {
+      return unauthorizedResponse(res, "Token não fornecido.");
+    }
+
+    // Adiciona o token à blacklist para invalidá-lo
+    const blacklistedToken = new Blacklist({ token });
+    await blacklistedToken.save();
+
+    return res.status(200).json({
+      status: "SUCCESS",
+      message: "Logout bem-sucedido. Token invalidado.",
+    });
+  } catch (error) {
+    console.error("Erro no logout:", error);
+    return res.status(500).json({
+      status: "FAILED",
+      message: "Erro interno no servidor.",
+    });
+  }
+};

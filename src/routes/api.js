@@ -8,6 +8,8 @@ const followRouter = require("./follow.route");
 const saveRouter = require("./save.route");
 const chatRouter = require("./chat.route");
 const alertRouter = require("./alert.route");
+const messageRoutes = require("./message.route");
+const validateToken = require("./validate.token.route");
 
 const app = express();
 
@@ -18,8 +20,10 @@ app.use("", jobsRouter);
 app.use("", connectionsRouter);
 app.use("", followRouter);
 app.use("", alertRouter);
+app.use("", validateToken);
 
 // app.use("", saveRouter);
 app.use("/chat/", chatRouter);
+app.use("/messages", messageRoutes);
 
 module.exports = app;
