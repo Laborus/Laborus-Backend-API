@@ -38,7 +38,7 @@ router.delete("/user/:id", authenticateJWT, async (req, res) => {
     return errorResponse(res, "INTERNAL_SERVER_ERROR");
   }
 });
-router.put("/user/edit/:id", authenticateJWT, userController.editUser);
+router.patch("/user/edit/:id", authenticateJWT, userController.editUser);
 router.delete("/users", userController.deleteAllUsers);
 
 module.exports = router;
