@@ -42,7 +42,7 @@ const studentSchema = new mongoose.Schema({
   },
   tags: {
     type: [String],
-    enum: validTags,
+    // enum: validTags,
     validate: {
       validator: function (tags) {
         return tags.length <= 3;
