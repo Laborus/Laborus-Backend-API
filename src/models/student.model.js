@@ -91,10 +91,6 @@ const studentSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  aboutContent: {
-    type: String,
-    max: [250, "AboutContent must not exceeds 250 characters."],
-  },
   saved: [
     {
       type: mongoose.Schema.Types.ObjectId,
