@@ -108,8 +108,9 @@ exports.editUser = [
 
       // Atualiza os campos permitidos
       if (name) user.name = name;
-      if (name) user.aboutContent = aboutContent;
-      if (name) user.tags = tags; 
+      if (aboutContent) user.aboutContent = aboutContent;
+      if (tags) user.tags = tags;
+
       if (otherFields) user.otherFields = otherFields;
 
       // Impede a atualização do e-mail
