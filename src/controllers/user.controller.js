@@ -94,7 +94,7 @@ exports.editUser = [
   async (req, res) => {
     try {
       const userId = req.params.id;
-      const { name, otherFields, profileImage, bannerImage } = req.body;
+      const { name, otherFields, profileImage, bannerImage, aboutContent, tags } = req.body;
 
       // Tente buscar o usuário nos três modelos possíveis
       let user =
@@ -108,6 +108,8 @@ exports.editUser = [
 
       // Atualiza os campos permitidos
       if (name) user.name = name;
+      if (name) user.aboutContent = aboutContent;
+      if (name) user.tags = tags; 
       if (otherFields) user.otherFields = otherFields;
 
       // Impede a atualização do e-mail
