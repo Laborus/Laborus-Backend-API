@@ -16,40 +16,65 @@ exports.createComment = async (req, res) => {
   }
 
   try {
-    const post = await Post.findById(postId);
-    if (!post) {
+    // Verifica se o post existe
+    const postExists = await Post.exists({ _id: postId });
+    if (!postExists) {
       return res.status(404).json({ message: "Post não encontrado." });
     }
 
+    // Inicializa `postedBy` e `postedByModel`
+    let postedBy;
     let postedByModel;
+
+    // Verifica se o usuário é uma escola
     const school = await School.findById(userId);
     if (school) {
+      postedBy = {
+        id: school._id,
+        name: school.name || "Nome não especificado",
+        photo: school.profileImage || "../public/images/bannerImage_default.png",
+        school: school.name || "Escola não especificada",
+      };
       postedByModel = "School";
     } else {
-      const student = await Student.findById(userId);
+      // Verifica se o usuário é um estudante
+      const student = await Student.findById(userId).populate("school");
       if (student) {
+        postedBy = {
+          id: student._id,
+          name: student.name || "Nome não especificado",
+          photo: student.profileImage || "../public/images/bannerImage_default.png",
+          school: student.school?.name || "Escola não especificada",
+        };
         postedByModel = "Student";
       } else {
         return res.status(403).json({ message: "Usuário não autorizado." });
       }
     }
 
-    // Cria o comentário
+    // Valida se os campos obrigatórios estão presentes
+    if (!postedBy.name || !postedBy.school) {
+      console.error("Erro ao construir 'postedBy':", postedBy);
+      return res
+        .status(400)
+        .json({ message: "Campos obrigatórios do autor estão ausentes." });
+    }
+
+    // Cria o novo comentário
     const newComment = new Comment({
       textContent,
-      postedBy: userId,
+      postedBy,
       postedByModel,
       postId,
-      likes: [], // Inicia com um array de likes vazio
-      updatedAt: Date.now(), // Define `updatedAt` igual a `createdAt` no momento da criação
+      likes: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
 
-    // Salva o comentário na collection `comments`
-    await newComment.save();
+    console.log("Novo Comentário Criado:", newComment);
 
-    // Adiciona o comentário ao array de `comments` no post específico
-    post.comments.push(newComment);
-    await post.save();
+    // Salva o comentário no banco de dados
+    await newComment.save();
 
     return res.status(201).json(newComment);
   } catch (error) {
@@ -59,6 +84,7 @@ exports.createComment = async (req, res) => {
       .json({ message: "Erro ao criar o comentário.", error });
   }
 };
+
 
 // Edição do Comentário
 exports.editComment = async (req, res) => {

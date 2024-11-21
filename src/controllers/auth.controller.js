@@ -183,7 +183,7 @@ exports.signin = async (req, res) => {
 
     // Gera o token JWT
     const token = jwt.sign(
-      { userId: user._id, accountType: user.constructor.modelName },
+      { userId: user._id, accountType: user.constructor.modelName, school: user.school || null},
       process.env.JWT_SECRET, // A chave secreta para assinatura
       { expiresIn: "7d" }
     );

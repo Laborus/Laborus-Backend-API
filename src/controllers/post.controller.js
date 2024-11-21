@@ -9,6 +9,7 @@ exports.createPostForCampus = async (req, res) => {
   const campusId = req.params.campusId;
 
   try {
+    // Primeiro, tenta encontrar a escola
     const school = await School.findById(userId);
     if (school) {
       const newPost = new Post({
@@ -17,7 +18,12 @@ exports.createPostForCampus = async (req, res) => {
         postedOn: "Campus",
         image,
         video,
-        postedBy: userId,
+        postedBy: {
+          id: userId,
+          name: school.name, // Supondo que o campo `name` exista na escola
+          photo: school.profileImage, // Supondo que o campo `profileImage` exista na escola
+          school: school._id, // ID da escola
+        },
         postedByModel: "School",
         campusId,
       });
@@ -25,15 +31,25 @@ exports.createPostForCampus = async (req, res) => {
       return res.status(201).json(savedPost);
     }
 
+    // Caso contrário, tenta encontrar o estudante
     const student = await Student.findById(userId);
+    
     if (student && student.school.toString() === campusId) {
+
+      const school = await School.findById(student.school);
+      
       const newPost = new Post({
         title,
         textContent,
         postedOn: "Campus",
         image,
         video,
-        postedBy: userId,
+        postedBy: {
+          id: userId,
+          name: student.name, // Nome do estudante
+          photo: student.profileImage, // Foto do estudante
+          school: school.name, // ID da escola do estudante
+        },
         postedByModel: "Student",
         campusId,
       });
@@ -50,9 +66,11 @@ exports.createPostForCampus = async (req, res) => {
   }
 };
 
+
 exports.createPost = async (req, res) => {
   const { title, textContent, image, video } = req.body;
   const { id, userType } = req.user; // Lido do middleware JWT
+  console.log(id, userType);
 
   if (!title || !textContent) {
     return res
@@ -61,13 +79,50 @@ exports.createPost = async (req, res) => {
   }
 
   try {
+
+    
+    const student = await Student.findById(id);
+    const school = await School.findById(student.school);
+    console.log(school)
+    let postedBy = {};
+
+    // Caso o usuário seja uma escola
+    if (userType === "School") {
+      
+      console.log(school);
+      if (!school) {
+        return res.status(404).json({ message: "Escola não encontrada." });
+      }
+      postedBy = {
+        id: school._id,        // ID da escola
+        name: school.name,     // Nome da escola
+        photo: school.profileImage, // Foto de perfil da escola
+        school: school._id,    // ID da escola
+      };
+    }
+
+    // Caso o usuário seja um estudante
+    if (userType === "Student") {
+     
+      if (!student) {
+        return res.status(404).json({ message: "Estudante não encontrado." });
+      }
+
+      postedBy = {
+        id: student._id,       // ID do estudante
+        name: student.name,    // Nome do estudante
+        photo: student.profileImage, // Foto de perfil do estudante
+        school: school.name,   // ID da escola do estudante
+      };
+    }
+
     const newPost = new Post({
       title,
       textContent,
       postedOn: "Global",
       image,
       video,
-      postedBy: id, // ID do usuário ou escola
+      postedBy,
       postedByModel: userType === "school" ? "School" : "Student", // Definido dinamicamente
     });
 
@@ -106,7 +161,31 @@ exports.getGlobalPosts = async (req, res) => {
 // Busca todos os posts de um campus específico e seus comentários
 exports.getCampusPosts = async (req, res) => {
   const { campusId } = req.params;
+  const user = req.user; // Usuário autenticado extraído do middleware
+
   try {
+    // Valida se o usuário autenticado pertence ao campus
+    if (user.userType === "School") {
+      // Se for uma escola, verifica se o `campusId` da escola corresponde
+      if (user.id !== campusId) {
+        return res
+          .status(403)
+          .json({ message: "Acesso negado. Você não pertence a este campus." });
+      }
+    } else if (user.userType === "Student") {
+      // Se for um estudante, verifica se ele pertence a uma escola no campus
+      const student = await Student.findById(user.id).populate("school");
+      if (!student || String(student.school?._id) !== String(campusId)) {
+        return res
+          .status(403)
+          .json({ message: "Acesso negado. Você não pertence a este campus." });
+      }
+    } else {
+      // Usuário não identificado corretamente
+      return res.status(403).json({ message: "Usuário não autorizado." });
+    }
+
+    // Busca os posts do campus
     const campusPosts = await Post.find({ campusId })
       .populate("postedBy") // Popula os dados do autor do post
       .exec();
@@ -133,6 +212,39 @@ exports.getCampusPosts = async (req, res) => {
       .json({ message: "Erro ao buscar posts do campus", error });
   }
 };
+
+
+// Busca todos os posts de um usuário específico pelo ID do usuário
+exports.postsByUserId = async (req, res) => {
+  try {
+    const userId = req.params.userId; // ID do usuário recebido como parâmetro
+
+    // Busca os posts criados pelo usuário
+    const userPosts = await Post.find({ postedBy: userId })
+      .populate("postedBy") // Popula os dados do autor do post
+      .exec();
+
+    if (userPosts.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Nenhum post encontrado para este usuário." });
+    }
+
+    // Busca e adiciona os comentários de cada post
+    const postsWithComments = await Promise.all(
+      userPosts.map(async (post) => {
+        const comments = await Comment.find({ postId: post._id }).exec();
+        return { ...post.toObject(), comments }; // Adiciona os comentários ao post
+      })
+    );
+
+    return res.status(200).json(postsWithComments);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Erro ao buscar posts do usuário", error });
+  }
+};
+
 
 // Busca um post pelo ID
 exports.postById = async (req, res) => {
@@ -169,7 +281,23 @@ exports.updatePost = async (req, res) => {
   }
 
   try {
-    const post = await Post.findByIdAndUpdate(
+    // Encontra o post pelo ID
+    const post = await Post.findById(req.params.id);
+
+    // Verifica se o post existe
+    if (!post) {
+      return res.status(404).json({ message: "Post não encontrado" });
+    }
+
+    // Verifica se o usuário que está tentando atualizar é o criador do post
+    if (post.postedBy.id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "Você não tem permissão para atualizar este post.",
+      });
+    }
+
+    // Atualiza o post
+    const updatedPost = await Post.findByIdAndUpdate(
       req.params.id,
       {
         ...req.body,
@@ -178,16 +306,13 @@ exports.updatePost = async (req, res) => {
       { new: true }
     );
 
-    if (!post) {
-      return res.status(404).json({ message: "Post não encontrado" });
-    }
-
-    return res.status(200).json(post);
+    return res.status(200).json(updatedPost);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erro ao atualizar post", error });
   }
 };
+
 
 // Deleta um post pelo ID
 exports.deletePost = async (req, res) => {

@@ -23,6 +23,8 @@ router.get(
   postController.getCampusPosts
 );
 
+router.get("/post/user/:userId", authenticateJWT, postController.postsByUserId);
+
 // Rota para buscar um post específico pelo ID
 router.get("/post/:id", authenticateJWT, postController.postById);
 

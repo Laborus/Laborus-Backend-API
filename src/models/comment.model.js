@@ -6,18 +6,32 @@ const commentSchema = new mongoose.Schema({
     required: [true, "Conteúdo do comentário é obrigatório."],
   },
   postedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    refPath: "postedByModel", // Referência ao modelo correto
-    required: true,
+    id: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: "postedByModel",
+    },
+    name: {
+      type: String,
+      required: [true, "O nome do autor é obrigatório."],
+    },
+    photo: {
+      type: String,
+      default: "../public/images/bannerImage_default.png",
+    },
+    school: {
+      type: String,
+      required: [true, "O nome da escola é obrigatório."],
+    },
   },
   postedByModel: {
     type: String,
-    enum: ["School", "Student"], // Modelos permitidos
+    enum: ["School", "Student"],
     required: true,
   },
   postId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Post", // Referência ao modelo Post
+    ref: "Post",
     required: true,
   },
   createdAt: {
@@ -25,8 +39,8 @@ const commentSchema = new mongoose.Schema({
     default: Date.now,
   },
   updatedAt: {
-    type: Date, // Adiciona o campo updatedAt
-    default: Date.now, // Definido para agora por padrão
+    type: Date,
+    default: Date.now,
   },
   likes: [
     {
@@ -47,9 +61,9 @@ const commentSchema = new mongoose.Schema({
   },
 });
 
-// Middleware para atualizar updatedAt antes de salvar
+// Middleware para atualizar `updatedAt` antes de salvar
 commentSchema.pre("save", function (next) {
-  this.updatedAt = Date.now(); // Atualiza updatedAt sempre que o documento for salvo
+  this.updatedAt = Date.now();
   next();
 });
 

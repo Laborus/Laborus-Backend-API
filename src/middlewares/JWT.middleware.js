@@ -23,15 +23,19 @@ const authenticateJWT = async (req, res, next) => {
 
     // Decodifica o JWT
     const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
+    console.log("Token decodificado:", decoded);
+
 
     // Adiciona as informações do usuário no objeto req
     req.user = {
-      id: decoded.userId,
-      userType: decoded.userType,
+      id: decoded.userId || decoded.id,
+      userType: decoded.userType ||  decoded.accountType,
       school: decoded.school,
       exp: decoded.exp, // Tempo de expiração
       iat: decoded.iat, // Tempo de criação do token
     };
+
+    console.log("Usuário autenticado no middleware:", req.user);
 
     // Passa o controle para o próximo middleware ou controlador
     next();

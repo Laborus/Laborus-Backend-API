@@ -34,9 +34,21 @@ const postSchema = new mongoose.Schema({
     contentType: String,
   },
   postedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    refPath: "postedByModel",
-    required: true,
+    id: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      refPath: "postedByModel", 
+      required: true 
+    },
+    name: { 
+      type: String, 
+      required: true 
+    },
+    photo: { 
+      type: String 
+    },
+    school: { 
+      type: String,  // Alterado para armazenar o nome da escola como string
+    },
   },
   postedByModel: {
     type: String,
@@ -82,7 +94,6 @@ const postSchema = new mongoose.Schema({
     type: [Comment.schema],
     default: [],
   },
-  // No seu post.model.js
   sharedBy: [
     {
       type: mongoose.Schema.Types.ObjectId,
@@ -98,5 +109,19 @@ postSchema.virtual("likesCount").get(function () {
 postSchema.virtual("dislikesCount").get(function () {
   return this.dislikes.length;
 });
+
+// Apliquei o populate manual para os posts com base em seu tipo
+postSchema.methods.populatePostedBy = async function () {
+  const model = this.postedByModel === "School" ? School : Student;
+  const user = await model.findById(this.postedBy.id);
+  this.postedBy.name = user.name;
+  this.postedBy.photo = user.profileImage;
+  if (this.postedByModel === "Student") {
+    const school = await School.findById(user.school);
+    this.postedBy.school = school ? school.name : ""; // Agora retorna o nome da escola
+  } else if (this.postedByModel === "School") {
+    this.postedBy.school = user.name; // No caso da escola, atribui o nome diretamente
+  }
+};
 
 module.exports = mongoose.model("Post", postSchema);
