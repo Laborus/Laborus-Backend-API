@@ -30,6 +30,7 @@ exports.signup = async (req, res) => {
       cnpj,
       courses,
       school,
+      schoolName,
     } = req.body;
 
     // Verifica se o e-mail já está registrado em qualquer uma das coleções
@@ -94,10 +95,14 @@ exports.signup = async (req, res) => {
         });
       }
 
+      // Pega o nome da escola
+      const schoolName = schoolRecord.name;
+
       user = new Student({
         ...commonFields,
         cpf,
         school: schoolRecord._id,
+        schoolName,
         course: req.body.course,
       });
     } else if (accountType === "School") {
@@ -183,7 +188,11 @@ exports.signin = async (req, res) => {
 
     // Gera o token JWT
     const token = jwt.sign(
-      { userId: user._id, accountType: user.constructor.modelName, school: user.school || null},
+      {
+        userId: user._id,
+        accountType: user.constructor.modelName,
+        school: user.school || null,
+      },
       process.env.JWT_SECRET, // A chave secreta para assinatura
       { expiresIn: "7d" }
     );
