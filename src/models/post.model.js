@@ -26,11 +26,11 @@ const postSchema = new mongoose.Schema({
     },
   },
   image: {
-    data: Buffer,
+    
     contentType: String,
   },
   video: {
-    data: Buffer,
+    
     contentType: String,
   },
   postedBy: {
