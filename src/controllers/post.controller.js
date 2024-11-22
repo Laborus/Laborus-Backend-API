@@ -1,6 +1,7 @@
 const Post = require("../models/post.model");
 const Student = require("../models/student.model");
 const School = require("../models/school.model");
+const mongoose = require("mongoose");
 const Comment = require("../models/comment.model");
 
 exports.createPostForCampus = async (req, res) => {
@@ -175,7 +176,25 @@ exports.getCampusPosts = async (req, res) => {
     } else if (user.userType === "Student") {
       // Se for um estudante, verifica se ele pertence a uma escola no campus
       const student = await Student.findById(user.id).populate("school");
-      if (!student || String(student.school?._id) !== String(campusId)) {
+      console.log("Estudante:" + student)
+
+      // Verifique se o estudante e a escola existem
+      console.log('Campus ID recebido:', campusId);
+      console.log('School do estudante:', student ? student.school : null);
+
+      if (!student || !student.school) {
+        return res.status(403).json({ message: "Estudante sem escola associada." });
+      }
+
+      // Garantir que ambos os valores sejam strings sem espaços extras
+      const campusTrimmed = campusId.trim();
+      console.log("Student.schhol._id:" + student.school)
+      const schoolTrimmed = student.school ? student.school.toString().trim() : null; // Converta _id para string
+      console.log(campusTrimmed, schoolTrimmed);
+
+      console.log('Comparação ajustada:', campusTrimmed === schoolTrimmed);
+
+      if (!schoolTrimmed || campusTrimmed !== schoolTrimmed) {
         return res
           .status(403)
           .json({ message: "Acesso negado. Você não pertence a este campus." });
@@ -214,14 +233,21 @@ exports.getCampusPosts = async (req, res) => {
 };
 
 
+
+
 // Busca todos os posts de um usuário específico pelo ID do usuário
 exports.postsByUserId = async (req, res) => {
   try {
-    const userId = req.params.userId; // ID do usuário recebido como parâmetro
+    const userId = req.params.userId;
+
+    // Validação do ID
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "ID de usuário inválido." });
+    }
 
     // Busca os posts criados pelo usuário
-    const userPosts = await Post.find({ postedBy: userId })
-      .populate("postedBy") // Popula os dados do autor do post
+    const userPosts = await Post.find({ "postedBy.id": userId })
+      .populate({ path: "postedBy.id", model: "Student" }) // ou "School"
       .exec();
 
     if (userPosts.length === 0) {
@@ -230,18 +256,22 @@ exports.postsByUserId = async (req, res) => {
         .json({ message: "Nenhum post encontrado para este usuário." });
     }
 
-    // Busca e adiciona os comentários de cada post
-    const postsWithComments = await Promise.all(
-      userPosts.map(async (post) => {
-        const comments = await Comment.find({ postId: post._id }).exec();
-        return { ...post.toObject(), comments }; // Adiciona os comentários ao post
-      })
-    );
+    // Busca comentários em uma única consulta
+    const postIds = userPosts.map((post) => post._id);
+    const allComments = await Comment.find({ postId: { $in: postIds } }).exec();
+
+    // Associa os comentários a cada post
+    const postsWithComments = userPosts.map((post) => {
+      const comments = allComments.filter((comment) => comment.postId.equals(post._id));
+      return { ...post.toObject(), comments };
+    });
 
     return res.status(200).json(postsWithComments);
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Erro ao buscar posts do usuário", error });
+    console.error("Erro ao buscar posts do usuário:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao buscar posts do usuário", error: error.message });
   }
 };
 
