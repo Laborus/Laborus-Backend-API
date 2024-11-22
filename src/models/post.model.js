@@ -26,12 +26,10 @@ const postSchema = new mongoose.Schema({
     },
   },
   image: {
-    
-    contentType: String,
+    type: String,
   },
   video: {
-    
-    contentType: String,
+    type: String,
   },
   postedBy: {
     id: { 
