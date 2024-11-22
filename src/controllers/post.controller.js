@@ -100,11 +100,7 @@ exports.createPost = async (req, res) => {
         school: school._id,    // ID da escola
       };
     }
-    
-    if (!isValidBase64(image)) {
-          return errorResponse(res, "Invalid Base64 format for profileImage.");
-    }
-      
+  
     // Caso o usuário seja um estudante
     if (userType === "Student") {
      
@@ -138,10 +134,6 @@ exports.createPost = async (req, res) => {
   }
 };
 
-function isValidBase64(str) {
-  const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-  return base64Regex.test(str);
-}
 // Busca todos os posts globais e seus comentários
 exports.getGlobalPosts = async (req, res) => {
   try {
