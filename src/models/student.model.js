@@ -35,6 +35,9 @@ const studentSchema = new mongoose.Schema({
     type: String,
     required: [true, "Please! School is required."],
   },
+  schoolName: {
+    type: String,
+  },
   course: {
     type: String,
     ref: "Course",

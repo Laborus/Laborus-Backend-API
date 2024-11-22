@@ -80,7 +80,7 @@ exports.createPost = async (req, res) => {
   }
 
   try {
-
+    
     
     const student = await Student.findById(id);
     const school = await School.findById(student.school);
@@ -101,7 +101,7 @@ exports.createPost = async (req, res) => {
         school: school._id,    // ID da escola
       };
     }
-
+  
     // Caso o usuário seja um estudante
     if (userType === "Student") {
      
