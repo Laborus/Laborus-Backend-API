@@ -13,7 +13,7 @@ const {
 exports.getAllJobs = async (req, res) => {
   try {
     // Recupera todas as vagas de emprego e popula as informações da empresa
-    const jobs = await Job.find().populate("company", "name as");
+    const jobs = await Job.find().populate("company", "name as companyName");
 
     // Conta o número total de vagas no sistema
     const totalJobs = await Job.countDocuments();
