@@ -202,7 +202,7 @@ exports.getJobsByType = async (req, res) => {
     // Recupera todas as vagas de emprego com o jobType especificado e popula as informações da empresa
     const jobs = await Job.find({ jobType }).populate(
       "company",
-      "name as companyName"
+      "name"
     );
 
     // Conta o número total de vagas com o jobType especificado
