@@ -12,6 +12,7 @@ const messageRoutes = require("./message.route");
 const validateToken = require("./validate.token.route");
 const postRouter = require("./post.route");
 const commentRouter = require("./comment.route");
+const discussionRouter = require("./discussion.route");
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use("", alertRouter);
 app.use("", validateToken);
 app.use("", postRouter);
 app.use("", commentRouter);
+app.use("", discussionRouter);
 
 // app.use("", saveRouter);
 app.use("/chat/", chatRouter);
