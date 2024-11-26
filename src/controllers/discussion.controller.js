@@ -41,6 +41,46 @@ const mongoose = require("mongoose");
     }
 };
 
+const getDiscussionById = async (req, res) => {
+  try {
+    const { discussionId } = req.params; // Corrigido para usar o parâmetro correto da URL
+
+    // Busca a discussão e popula os campos necessários
+    const discussion = await Discussion.findById(discussionId)
+      .populate("postedBy.id", "name profileImage school") // Popula o autor
+      .populate("campusId", "name") // Popula o campus (escola)
+      .populate({
+        path: "comments",
+        populate: {
+          path: "postedBy.id", // Popula o autor de cada comentário
+          select: "name profileImage",
+        },
+      })
+      .populate("selectedAnswer") // Popula a resposta selecionada, se existir
+      .lean(); // Retorna um objeto JSON simples em vez de um documento Mongoose
+
+    if (!discussion) {
+      return res.status(404).json({
+        success: false,
+        message: "Discussão não encontrada.",
+      });
+    }
+
+    // Retorna a discussão encontrada
+    res.status(200).json({
+      success: true,
+      data: discussion,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao buscar a discussão.",
+      error: error.message,
+    });
+  }
+};
+
 const listDiscussions = async (req, res) => {
     try {
       const { campusId } = req.params; // ID do campus na URL
@@ -220,4 +260,5 @@ module.exports = {
   addDiscussionComment,
   listDiscussionComments,
   closeDiscussion,
+  getDiscussionById
 };
